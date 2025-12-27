@@ -2,15 +2,21 @@ import React, { useState } from "react";
 
 interface LogoProps {
   className?: string;
+  onlineLogo?: string; // optional prop to override
+  localLogo?: string;  // optional prop to override
 }
 
-const Logo: React.FC<LogoProps> = ({ className = "w-10 h-10" }) => {
-  const ONLINE_LOGO =
-    "https://raw.githubusercontent.com/Dhante2004/respond-ph-assets/main/logo.png";
+const Logo: React.FC<LogoProps> = ({
+  className = "w-10 h-10",
+  onlineLogo = "https://raw.githubusercontent.com/Dhante2004/respond-ph-assets/main/logo.png",
+  localLogo = "/logo-local.png", // must exist in public/
+}) => {
+  const [src, setSrc] = useState(onlineLogo);
 
-  const LOCAL_LOGO = "/logo-local.png";
-
-  const [src, setSrc] = useState(ONLINE_LOGO);
+  // Handler ensures fallback works only once
+  const handleError = () => {
+    if (src !== localLogo) setSrc(localLogo);
+  };
 
   return (
     <div
@@ -20,7 +26,7 @@ const Logo: React.FC<LogoProps> = ({ className = "w-10 h-10" }) => {
         src={src}
         alt="RESPOND.PH Logo"
         className="w-full h-full object-contain"
-        onError={() => setSrc(LOCAL_LOGO)}
+        onError={handleError}
       />
     </div>
   );
