@@ -1,0 +1,8 @@
+{
+  "name": "RESPOND.PH - Emergency Response Platform",
+  "description": "A comprehensive emergency response system featuring a citizen reporting portal, administrative verification dashboard, and agency coordination tools with real-time analytics and mapping.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
