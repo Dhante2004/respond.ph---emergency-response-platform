@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { User, AccountVerificationStatus } from '../types';
 import { ShieldCheck, ShieldAlert, UserCheck, UserX, Eye, Search, Filter, Mail, Phone } from 'lucide-react';
