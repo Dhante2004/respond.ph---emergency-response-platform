@@ -278,7 +278,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
       
       // Point this to your new separate backend!
       // When you deploy the backend, you will change this localhost URL to the live one.
-      const BACKEND_URL = "http://localhost:5000/api/kyc/create-session"; 
+      const BACKEND_URL = "https://respond-ph-backend.onrender.com/api/kyc/create-session"; 
 
       const res = await fetch(BACKEND_URL, { 
         method: "POST",
