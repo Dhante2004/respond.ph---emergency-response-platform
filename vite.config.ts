@@ -10,6 +10,14 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3000,
       host: "0.0.0.0",
+      // Proxy intercepts /api/didit and securely forwards it to the real API
+      proxy: {
+        "/api/didit": {
+          target: "https://verification.didit.me",
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api\/didit/, ""),
+        },
+      },
     },
     plugins: [
       react(),
@@ -62,7 +70,6 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           navigateFallback: "/index.html",
-
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         },
       }),

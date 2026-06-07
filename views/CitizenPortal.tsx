@@ -23,12 +23,6 @@ interface CitizenPortalProps {
   reports: Report[];
   onSubmit: (reportData: Partial<Report>) => void;
   onUpdateUser: (userData: Partial<User>) => void;
-
-  /**
-   * Optional: wire this in App.tsx to delete a report from Firestore.
-   * Example:
-   *  const onDeleteReport = async (id: string) => { ... await deleteReport(id) }
-   */
   onDeleteReport?: (reportId: string) => Promise<void> | void;
 }
 
@@ -59,49 +53,43 @@ const INCIDENT_STYLES: Record<
 > = {
   fire: {
     active: "border-red-600 bg-red-50 text-red-700 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50/40",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-red-200 hover:bg-red-50/40",
     focus: "focus:ring-red-300",
     dot: "bg-red-500",
   },
   crime: {
     active: "border-violet-600 bg-violet-50 text-violet-700 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50/40",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-violet-200 hover:bg-violet-50/40",
     focus: "focus:ring-violet-300",
     dot: "bg-violet-500",
   },
   medical: {
     active: "border-emerald-600 bg-emerald-50 text-emerald-700 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/40",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50/40",
     focus: "focus:ring-emerald-300",
     dot: "bg-emerald-500",
   },
   accident: {
     active: "border-amber-600 bg-amber-50 text-amber-800 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50/40",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50/40",
     focus: "focus:ring-amber-300",
     dot: "bg-amber-500",
   },
   flood: {
     active: "border-sky-600 bg-sky-50 text-sky-700 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50/40",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50/40",
     focus: "focus:ring-sky-300",
     dot: "bg-sky-500",
   },
   other: {
     active: "border-slate-600 bg-slate-50 text-slate-800 shadow-sm",
-    inactive:
-      "border-slate-100 bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50",
+    inactive: "border-slate-100 bg-white text-slate-700 hover:border-slate-200 hover:bg-slate-50",
     focus: "focus:ring-slate-300",
     dot: "bg-slate-500",
   },
 };
 
-//  Persisted “only-new” notification tracking (per user)
+// Persisted “only-new” notification tracking (per user)
 type SeenState = {
   ack: Record<string, string>; // reportId -> acknowledgedAt
   status: Record<string, string>; // reportId -> currentStatus
@@ -158,21 +146,19 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
 
   // Camera State
   const [showCamera, setShowCamera] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState<"user" | "environment">(
-    "environment"
-  );
+  const [cameraFacing, setCameraFacing] = useState<"user" | "environment">("environment");
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
 
   const idInputRef = useRef<HTMLInputElement>(null);
 
-  //  Delete confirmation modal (UI)
+  // Delete confirmation modal (UI)
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Report | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
 
-  //  Toasts
+  // Toasts
   const [citizenToasts, setCitizenToasts] = useState<CitizenToast[]>([]);
 
   const pushCitizenToast = (title: string, message: string) => {
@@ -181,13 +167,28 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
     setTimeout(() => setCitizenToasts((p) => p.filter((x) => x.id !== id)), 5500);
   };
 
-  //  My reports
+  // Catch the user returning from Didit.me KYC Check
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("kyc_success") === "true") {
+      // Automatically update Firestore from the frontend!
+      onUpdateUser({ accountVerificationStatus: "verified" });
+      pushCitizenToast("Verification Complete", "Your identity has been verified by Didit.me!");
+      setView("account");
+      
+      // Clean up the URL so it looks nice again
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // My reports
   const myReports = useMemo(
     () => reports.filter((r) => r.userId === user.id),
     [reports, user.id]
   );
 
-  //  Trigger effect when ack/status changes even if array length stays same
+  // Trigger effect when ack/status changes even if array length stays same
   const myReportsSig = useMemo(() => {
     return myReports
       .map((r) => {
@@ -204,7 +205,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
   const seenRef = useRef<SeenState>({ ack: {}, status: {} });
   const bootRef = useRef(true);
 
-  //  Reset baseline when user changes (no spam on load)
+  // Reset baseline when user changes (no spam on load)
   useEffect(() => {
     bootRef.current = true;
     setCitizenToasts([]);
@@ -230,7 +231,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user.id]);
 
-  //  Only show notifications that are NEW
+  // Only show notifications that are NEW
   useEffect(() => {
     if (bootRef.current) {
       bootRef.current = false;
@@ -252,10 +253,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
         const wasAck = nextAck[r.id] || "";
         if (ack !== wasAck) {
           const byAgency = String(r.acknowledgedByAgency ?? r.assignedAgency ?? "UNIT");
-          pushCitizenToast(
-            "Report acknowledged",
-            `${byAgency} has seen your report • ${r.addressLandmark}`
-          );
+          pushCitizenToast("Report acknowledged", `${byAgency} has seen your report • ${r.addressLandmark}`);
           nextAck[r.id] = ack;
         }
       }
@@ -264,10 +262,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
       const st = r.currentStatus;
       const wasSt = nextStatus[r.id] || "";
       if (wasSt && st && st !== wasSt) {
-        pushCitizenToast(
-          "Status updated",
-          `Your report is now ${st.replace("_", " ")} • ${r.addressLandmark}`
-        );
+        pushCitizenToast("Status updated", `Your report is now ${st.replace("_", " ")} • ${r.addressLandmark}`);
       }
       if (st) nextStatus[r.id] = st;
     }
@@ -277,6 +272,40 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myReportsSig]);
 
+  const handleStartKYC = async () => {
+    try {
+      pushCitizenToast("Initiating...", "Connecting to secure server...");
+      
+      // Point this to your new separate backend!
+      // When you deploy the backend, you will change this localhost URL to the live one.
+      const BACKEND_URL = "http://localhost:5000/api/kyc/create-session"; 
+
+      const res = await fetch(BACKEND_URL, { 
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          workflow_id: "ov-Lohmxby10_S2jgUKJP02RGJjNv3YsoYRBAEVbG3c", 
+          vendor_data: user.id,
+          redirect_url: `${window.location.origin}/?kyc_success=true`
+        }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.url) {
+        // Redirect the user to Didit
+        window.location.href = data.url;
+      } else {
+        pushCitizenToast("Error", "Backend rejected session request.");
+        console.error("Backend Response:", data);
+      }
+    } catch (err) {
+      console.error("Fetch failed:", err);
+      pushCitizenToast("Connection Error", "Is the backend running?");
+    }
+  };
   // Attach stream and play
   useEffect(() => {
     if (showCamera && stream && videoRef.current) {
@@ -295,23 +324,15 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
 
   // Reverse geocode helper (Nominatim)
   const reverseGeocode = async (lat: number, lng: number) => {
-    const url =
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(
-        lat
-      )}` + `&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`;
+    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=18&addressdetails=1`;
 
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/json" },
-    });
-
+    const res = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
     if (!res.ok) throw new Error("Reverse geocoding failed");
     const json = await res.json();
 
     const a: RevGeoAddress = json?.address || {};
     const street = a.road || a.pedestrian || a.footway || a.neighbourhood || "";
-    const barangay =
-      a.suburb || a.quarter || a.village || a.hamlet || a.neighbourhood || "";
+    const barangay = a.suburb || a.quarter || a.village || a.hamlet || a.neighbourhood || "";
     const city = a.city || a.town || a.municipality || "";
     const province = a.state || a.region || "";
 
@@ -533,7 +554,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
 
   return (
     <div className="mx-auto max-w-2xl pb-[calc(6rem+env(safe-area-inset-bottom))]">
-      {/*  Citizen toast host */}
+      {/* Citizen toast host */}
       {citizenToasts.length > 0 && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[9999] w-[92vw] max-w-md space-y-2">
           {citizenToasts.map((t) => (
@@ -1019,12 +1040,54 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
             </div>
           </div>
 
-          {/* Government ID Upload Card */}
+          {/* INSTANT VERIFICATION CARD */}
+          <div className="rounded-3xl border border-emerald-100 bg-gradient-to-b from-emerald-50/30 to-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
+                  Instant Verification
+                </h4>
+                <p className="mt-2 text-xs font-medium text-slate-500">
+                  Fast, automated KYC verification powered by Didit.me. Verify your identity in seconds.
+                </p>
+              </div>
+
+              <div className="shrink-0 rounded-2xl bg-emerald-50 p-3 text-emerald-600 ring-1 ring-emerald-100">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+            </div>
+
+            <div className="mt-5">
+              <button
+                type="button"
+                onClick={handleStartKYC}
+                disabled={user.accountVerificationStatus === "verified"}
+                className={`flex w-full items-center justify-center gap-3 rounded-2xl px-4 py-4 font-black text-white shadow-lg transition-all focus:outline-none focus:ring-2 active:scale-[0.99] ${
+                  user.accountVerificationStatus === "verified"
+                    ? "bg-slate-300 cursor-not-allowed"
+                    : "bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-400"
+                }`}
+              >
+                <ShieldCheck className="h-5 w-5" />
+                {user.accountVerificationStatus === "verified" ? "Account Verified" : "Verify Automatically"}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 py-2">
+            <div className="h-px w-16 bg-slate-200" />
+            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-400">
+              OR MANUAL FALLBACK
+            </span>
+            <div className="h-px w-16 bg-slate-200" />
+          </div>
+
+          {/* Government ID Upload Card (Manual Fallback) */}
           <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
                 <h4 className="text-sm font-black uppercase tracking-widest text-slate-800">
-                  Government ID
+                  Manual Document Upload
                 </h4>
                 <p className="mt-2 text-xs font-medium text-slate-500">
                   Examples: Driver’s License, PhilSys ID, Passport, UMID, PRC ID.
