@@ -24,7 +24,7 @@ app.post('/api/kyc/create-session', async (req, res) => {
         }, {
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${process.env.DIDIT_API_KEY}` 
+                'x-api-key': process.env.DIDIT_API_KEY
                 // Note: If Bearer doesn't work, change it back to 'x-api-key': process.env.DIDIT_API_KEY
             }
         });
