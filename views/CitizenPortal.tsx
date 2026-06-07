@@ -286,7 +286,7 @@ const CitizenPortal: React.FC<CitizenPortalProps> = ({
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ 
-          workflow_id: "ov-Lohmxby10_S2jgUKJP02RGJjNv3YsoYRBAEVbG3c", 
+          workflow_id: "b328d266-1a0c-4ffb-8dea-74d1e27cdb79", 
           vendor_data: user.id,
           redirect_url: `${window.location.origin}/?kyc_success=true`
         }),
